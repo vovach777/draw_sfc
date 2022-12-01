@@ -10,28 +10,26 @@ A 2D algorithm that combines Peano (3x3) and Hilbert (2x2) blocks was published 
 
 #define msg(a...) while(1) { printf(a); printf("\n"); break; }
 
-static void go(int x0, int y0, int dxl, int dyl, int dxr, int dyr, char dir);
 
-size_t render_count = 0;
+typedef void (*RenderCallback)(int x, int y, void * ctx);
 
-static void render(int x0, int y0,  char dir)
-{
-  // msg("render: %d,%d",x0,y0);
-  render_count++;
-}
+static void go_ctx(int x0, int y0, int dxl, int dyl, int dxr, int dyr, char dir, RenderCallback cb, void *ctx);
+
+#define render(x0, y0, dir0)  cb(x0,y0,ctx)
+#define go(x0, y0, dxl, dyl, dxr, dyr, dir) go_ctx(x0, y0, dxl, dyl, dxr, dyr, dir,cb,ctx)
 
 
-void spacefill(int ll,int tt,int ww,int hh) //left, top, width, height
+void spacefill(int ww,int hh, RenderCallback cb, void *ctx) //left, top, width, height
 { if (hh>ww) //go top->down
-  { if ((hh%2==1)&&(ww%2==0)) go(ll, tt, ww, 0, 0, hh, 'm'); //go diagonal
-    else go(ll, tt, ww, 0, 0, hh, 'r'); //go top->down
+  { if ((hh%2==1)&&(ww%2==0)) go(0, 0, ww, 0, 0, hh, 'm'); //go diagonal
+    else go(0,0, ww, 0, 0, hh, 'r'); //go top->down
   }
   else //go left->right
-  { if ((ww%2==1)&&(hh%2==0)) go(ll, tt, ww, 0, 0, hh, 'm'); //go diagonal
-    else go(ll, tt, ww, 0, 0, hh, 'l'); //go left->right
+  { if ((ww%2==1)&&(hh%2==0)) go(0, 0, ww, 0, 0, hh, 'm'); //go diagonal
+    else go(0, 0, ww, 0, 0, hh, 'l'); //go left->right
   }
 }
-static void go(int x0, int y0, int dxl, int dyl, int dxr, int dyr, char dir)
+static void go_ctx(int x0, int y0, int dxl, int dyl, int dxr, int dyr, char dir, RenderCallback cb, void *ctx)
 { //x0, y0: start corner looking to the center of the rectangle
   //dxl, dyl: vector from the start corner to the left corner of the rectangle
   //dxr, dyr: vector from the start corner to the right corner of the rectangle
@@ -369,18 +367,29 @@ static void go(int x0, int y0, int dxl, int dyl, int dxr, int dyr, char dir)
 }
 
 
+typedef struct fill_ctx {
+  size_t render_count;
+} *fill_ctx_p, fill_ctx;
+
+void render_cb(int x, int y, fill_ctx_p ctx) {
+  ctx->render_count += 1;
+}
+
 
 int main() {
 
+  fill_ctx ctx;
 
-  for (int x=1; x<=4096; x++)
-  for (int y=1; y<=4096; y++) {
-    render_count = 0;
-    spacefill(0,0,x,y);
-    if (render_count != x*y) {
+  for (int x=1; x<=3333; x++)
+  for (int y=1; y<=33; y++) {
+
+    ctx.render_count = 0;
+
+    spacefill(x,y, (RenderCallback) render_cb, &ctx);
+    if (ctx.render_count != x*y) {
       printf("%d,%d fail!\n",x,y);
     }
-      printf("\r                     \r%.2f%%",x * 100.0/4096);
+      printf("\r                     \r%.2f%%",x * 100.0/3333);
   }
 
 }
